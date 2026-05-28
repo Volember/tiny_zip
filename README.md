@@ -36,17 +36,9 @@ Pure portable C99.
 
 ---
 
-# Installation
+# Installation & Usage
 
 Just copy `tiny_zip.h` into your project.
-
-```c
-#define NZ_IMPLEMENTATION
-#include "tiny_zip.h"
-```
----
-
-# Example
 
 ```c
 #define NZ_IMPLEMENTATION
@@ -67,6 +59,7 @@ int main(void)
     return 0;
 }
 ```
+---
 
 # Contributing
 
