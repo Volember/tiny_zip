@@ -43,3 +43,31 @@ Just copy `tiny_zip.h` into your project.
 ```c
 #define NZ_IMPLEMENTATION
 #include "tiny_zip.h"
+```
+---
+
+# Example
+
+```c
+#define NZ_IMPLEMENTATION
+#include "tiny_zip.h"
+
+int main(void)
+{
+    nz_zip zip;
+
+    nz_zip_create(&zip, "assets.zip");
+
+    nz_zip_add_file(&zip, "image.png");
+    nz_zip_add_file(&zip, "config.json");
+    nz_zip_add_directory(&zip, "data");
+
+    nz_zip_close(&zip);
+
+    return 0;
+}
+```
+
+# Contributing
+
+Issues and pull requests are welcome.
