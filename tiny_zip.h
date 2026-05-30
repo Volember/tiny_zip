@@ -86,7 +86,7 @@ typedef struct
 typedef struct
 {
     FILE *fp;
-    uint32_t buf;
+    uint64_t buf; /* fixed: avoid UB on shifts */
     int n;
     uint32_t total;
 } nz_bits;
@@ -155,7 +155,7 @@ static void nz_bits_init(nz_bits *b, FILE *fp)
 }
 static void nz_bits_put(nz_bits *b, uint32_t val, int bits)
 {
-    b->buf |= val << b->n;
+    b->buf |= ((uint64_t)val << b->n);
     b->n += bits;
     while (b->n >= 8)
     {
@@ -436,6 +436,8 @@ static uint32_t nz_deflate_stream(nz_archive *ar, FILE *in, nz_bits *out, int le
             /* need more data — try to refill after slide */
             nz_lz_slide(lz);
             pos -= NZ_WSIZE;
+            if (lz->wend > NZ_IO_BUF)
+                return crc;
             rd = fread(lz->win + lz->wend, 1, NZ_IO_BUF - lz->wend, in);
             if (rd > 0)
             {
@@ -595,8 +597,18 @@ int nz_add_file(nz_archive *ar, const char *name, int level)
         store_name++;
 
     /* Check for path traversal */
-    if (strstr(store_name, "..") != NULL)
-        return -1;
+    /* safer traversal check: reject path components ".." only */
+    {
+        const char *p = store_name;
+        while (*p)
+        {
+            if ((p == store_name || p[-1] == '/' || p[-1] == '\\') &&
+                p[0] == '.' && p[1] == '.' &&
+                (p[2] == '\0' || p[2] == '/' || p[2] == '\\'))
+                return -1;
+            p++;
+        }
+    }
     if (store_name[0] == '/' || (store_name[0] && store_name[1] == ':'))
         return -1;
 
@@ -621,6 +633,8 @@ int nz_add_file(nz_archive *ar, const char *name, int level)
         /* Ensure directory name ends with '/' */
         if (e->name_len > 0 && e->name[e->name_len - 1] != '/')
         {
+            if (e->name_len >= sizeof(e->name) - 1)
+                return -1;
             e->name[e->name_len++] = '/';
             e->name[e->name_len] = '\0';
         }
@@ -633,6 +647,8 @@ int nz_add_file(nz_archive *ar, const char *name, int level)
         /* Ensure directory name ends with '/' */
         if (e->name_len > 0 && e->name[e->name_len - 1] != '/')
         {
+            if (e->name_len >= sizeof(e->name) - 1)
+                return -1;
             e->name[e->name_len++] = '/';
             e->name[e->name_len] = '\0';
         }
@@ -651,6 +667,8 @@ int nz_add_file(nz_archive *ar, const char *name, int level)
     e->method = (level == 0 || is_dir) ? 0 : 8;
 
     local_start = ftell(ar->fp);
+    if (local_start < 0)
+        return -1;
     e->local_off = (uint32_t)local_start;
 
     if (in)
@@ -729,8 +747,18 @@ int nz_add_file_ex(nz_archive *ar, const char *file_path, const char *archive_na
         store_name++;
 
     /* Check for path traversal */
-    if (strstr(store_name, "..") != NULL)
-        return -1;
+    /* safer traversal check: reject path components ".." only */
+    {
+        const char *p = store_name;
+        while (*p)
+        {
+            if ((p == store_name || p[-1] == '/' || p[-1] == '\\') &&
+                p[0] == '.' && p[1] == '.' &&
+                (p[2] == '\0' || p[2] == '/' || p[2] == '\\'))
+                return -1;
+            p++;
+        }
+    }
     if (store_name[0] == '/' || (store_name[0] && store_name[1] == ':'))
         return -1;
 
@@ -755,6 +783,8 @@ int nz_add_file_ex(nz_archive *ar, const char *file_path, const char *archive_na
         /* Ensure directory name ends with '/' */
         if (e->name_len > 0 && e->name[e->name_len - 1] != '/')
         {
+            if (e->name_len >= sizeof(e->name) - 1)
+                return -1;
             e->name[e->name_len++] = '/';
             e->name[e->name_len] = '\0';
         }
@@ -767,6 +797,8 @@ int nz_add_file_ex(nz_archive *ar, const char *file_path, const char *archive_na
         /* Ensure directory name ends with '/' */
         if (e->name_len > 0 && e->name[e->name_len - 1] != '/')
         {
+            if (e->name_len >= sizeof(e->name) - 1)
+                return -1;
             e->name[e->name_len++] = '/';
             e->name[e->name_len] = '\0';
         }
@@ -785,6 +817,8 @@ int nz_add_file_ex(nz_archive *ar, const char *file_path, const char *archive_na
     e->method = (level == 0 || is_dir) ? 0 : 8;
 
     local_start = ftell(ar->fp);
+    if (local_start < 0)
+        return -1;
     e->local_off = (uint32_t)local_start;
 
     if (in)
