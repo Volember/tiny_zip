@@ -13,7 +13,7 @@ A lightweight, robust ZIP writer focused on binary stability and seamless integr
 
 - **No external dependencies** (zlib not required)
 - **Portable** (pure C99, standard library only)
-- **Memory efficient** (no massive allocations)
+- **Dynamic Capacity:** Automatically resizes archive entries buffer.
 - **Robust** (CRC-32 verification, strict standard compliance)
 - **Tiny** (single-header file)
 
@@ -21,11 +21,10 @@ A lightweight, robust ZIP writer focused on binary stability and seamless integr
 
 # Features
 
-- **Minimalist API:** Create archives and add files in just a few lines of code.
-- **Buffer Support:** Add data directly from RAM without temporary file overhead.
-- **File Streaming:** Optimized interface for adding existing files from disk.
+- **Minimalist API:** Create archives and add files in just a few lines.
+- **Buffer & Disk Support:** Add data directly from RAM or stream from disk files.
+- **Auto-Scaling:** Safely handles adding an unlimited number of files via dynamic reallocations.
 - **Portable Architecture:** Explicit Little-Endian writing for cross-platform reliability.
-- **Embedded-ready:** Zero hidden dynamic allocations in the critical path.
 
 ---
 
@@ -44,9 +43,9 @@ int main(void)
     if (!zip) return 1;
 
     // 2. Add files from disk
-    zip_add_file(zip, "data.txt", "data.txt", 0);
+    zip_add_file(zip, "test.txt", "data.txt", 0);
 
-    // 3. Add data directly from memory buffers
+    // 3. Add data directly from memory
     char *data = "Hello, world!";
     zip_add_buffer(zip, data, 13, "hello.txt");
 
